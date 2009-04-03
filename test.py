@@ -1,5 +1,9 @@
-import pyximport; pyximport.install()
-import linearref as l  
+try:
+    # usefl if working with a point
+    import pyximport; pyximport.install()
+except: pass
+
+import ligeos.linearref as l  
 
 def test_basic():
     assert int(157249.057369) == int(l.distance_earth(0,0,1,1))

@@ -6,6 +6,8 @@ setup(name='ligeos',
       packages=['ligeos',],
       ext_modules = [Extension("ligeos.linearref", ["ligeos/linearref.pyx"])],
       
+      package_data = {'ligeos':['ligeos/linearref.pyx']},
+                              
       test_suite='nose.collector',
       
       author = "Nino Walker",
