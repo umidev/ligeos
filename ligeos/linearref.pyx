@@ -15,6 +15,9 @@ cdef extern from "math.h":
     double cos(double d)
     double fabs(double d)
     double sqrt(double d)
+    double tan(double d)
+    double atan(double d)
+    double atan2(double d, double d)
 
 
 # Constants
@@ -44,10 +47,63 @@ cpdef double distance_earth(float x1, float y1, float x2, float y2):
     if sino > 1.0: sino = 1.0
     return 2.0 * EARTH_RADIUS * asin(sino);
 
-#def distance_earth(float x1, float y1, float x2, float y2):
-#    return cdistance_earth(x1,y1,x2,y2)
+# WGS-84 ellipsiod
+DEF _VCTY_A = 6378137.0
+DEF _VCTY_B = 6356752.3142
+DEF _VCTY_F = 1/298.257223563
 
+cpdef vincenty(double lat1, double lon1, double lat2, double lon2):
+    """Returns distance in meters between any points earth using the Vincenty ellipsoidal model of the earth"""
+    cdef double L, U1, U2, sinU1, sinU2, lmbda, lmbdaP, sinLambda, cosLambda, sinSigma
+    cdef double cosSigma, sigma, alpha, cosSqAlpha, cos2SigmaM
+    cdef double uSq, A, B, deltaSigma, C
+    cdef int iterLimit
     
+    L = ( lon2-lon1 )*__PI / 180.0
+    
+    U1 = atan( (1-_VCTY_F) * tan( __PI*lat1/180.0 ) )
+    U2 = atan( (1-_VCTY_F) * tan( __PI*lat2/180.0 ) )
+    sinU1 = sin(U1); cosU1 = cos(U1)
+    sinU2 = sin(U2); cosU2 = cos(U2)
+    lmbda = L; lmbdaP = 2.0*__PI
+    
+    iterLimit = 20
+    
+    while( iterLimit > 0 ):
+        if abs(lmbda-lmbdaP) < 1E-12:
+            break
+        
+        sinLambda = sin(lmbda); cosLambda = cos(lmbda)
+        sinSigma = sqrt((cosU2*sinLambda) * (cosU2*sinLambda) + \
+            (cosU1*sinU2-sinU1*cosU2*cosLambda) * (cosU1*sinU2-sinU1*cosU2*cosLambda))
+        if sinSigma==0:
+            return 0  # co-incident points
+
+        cosSigma = sinU1*sinU2 + cosU1*cosU2*cosLambda
+        sigma = atan2(sinSigma, cosSigma)
+        alpha = asin(cosU1 * cosU2 * sinLambda / sinSigma)
+        cosSqAlpha = cos(alpha) * cos(alpha)
+        cos2SigmaM = cosSigma - 2.0*sinU1*sinU2/cosSqAlpha
+        C = _VCTY_F/16.0*cosSqAlpha*(4.0+_VCTY_F*(4.0-3.0*cosSqAlpha))
+        lmbdaP = lmbda;
+        lmbda = L + (1.0-C) * _VCTY_F * sin(alpha) * \
+            (sigma + C*sinSigma*(cos2SigmaM+C*cosSigma*(-1.0+2.0*cos2SigmaM*cos2SigmaM)))
+            
+        iterLimit -= 1
+            
+    if iterLimit==0:
+        return None  # formula failed to converge
+        
+    uSq = cosSqAlpha * (_VCTY_A*_VCTY_A - _VCTY_B*_VCTY_B) / (_VCTY_B*_VCTY_B);
+    A = 1.0 + uSq/16384.0*(4096.0+uSq*(-768.0+uSq*(320.0-175.0*uSq)))
+    B = uSq/1024.0 * (256.0+uSq*(-128.0+uSq*(74.0-47.0*uSq)))
+    deltaSigma = B*sinSigma*(cos2SigmaM+B/4.0*(cosSigma*(-1.0+2.0*cos2SigmaM*cos2SigmaM)-
+            B/6*cos2SigmaM*(-3.0+4.0*sinSigma*sinSigma)*(-3.0+4.0*cos2SigmaM*cos2SigmaM)))
+    #s = _VCTY_B*A*(sigma-deltaSigma)
+    
+    return _VCTY_B*A*(sigma-deltaSigma)
+
+
 cdef class CPoint:
     """ A coordinate pair.  If geo is set, distance_earth will be used in distance calculations."""
     cdef double _x, _y

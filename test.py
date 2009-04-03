@@ -1,5 +1,5 @@
 try:
-    # usefl if working with a point
+    # useful if working with a dev instance
     import pyximport; pyximport.install()
 except: pass
 
@@ -108,7 +108,19 @@ def test_intersect():
     assert l1.closest_pt_to_line(l2) != None
     assert l1.closest_pt_to_line(l2).x == 0.25
     assert l1.closest_pt_to_line(l2).y == 0.25
+    
+def test_vincenty():
+    import time
+    t0 = time.time()
+    for i in range(10000):
+        d = l.vincenty(47.68382,-122.376709, 47.683155,-122.376666)
+    t1 = time.time()
+    print( t1-t0 )
+    print "Vincenty", l.vincenty(47.68382,-122.376709, 47.68408,-122.375722)
+    assert 7954 == int(l.vincenty(47.68382,-122.376709, 47.68408,-122.375722)*100)
 
 if __name__ == '__main__':
     test_basic()
     test_linestring()
+    test_intersect()
+    test_vincenty()
