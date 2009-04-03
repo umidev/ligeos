@@ -1,7 +1,7 @@
 from setuptools import setup, Extension
 
 setup(name='ligeos',
-      version='0.0.1',
+      version='0.1.0',
       #install_requires=['cython>=0.10.3'], 
       packages=['ligeos',],
       ext_modules = [Extension("ligeos.linearref", ["ligeos/linearref.pyx"])],
