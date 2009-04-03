@@ -3,7 +3,7 @@ try:
     import pyximport; pyximport.install()
 except: pass
 
-import ligeos.linearref as l  
+import ligeos as l  
 
 def test_basic():
     assert int(157249.057369) == int(l.distance_earth(0,0,1,1))
